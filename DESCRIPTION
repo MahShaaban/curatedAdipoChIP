@@ -1,0 +1,45 @@
+Package: curatedAdipoChIP
+Type: Package
+Title: A Curated ChIP-Seq Dataset of MDI-induced Differentiated Adipocytes 
+  (3T3-L1)
+Version: 0.99.0
+Year: 2019
+Description: A curated dataset of publicly available ChIP-sequencing of 
+  transcription factors, chromatin remodelers and histone modifications in the 
+  3T3-L1 pre-adipocyte cell line. The package document the data collection,
+  pre-processing and processing of the data. In addition to the documentation,
+  the package contains the scripts that was used to generated the data.
+License: GPL-3
+Authors@R: person("Mahmoud", "Ahmed",
+    email = "mahmoud.s.fahmy@students.kasralainy.edu.eg",
+    role = c("aut", "cre"),
+    comment = c(ORCID = "0000-0002-4377-6541"))
+URL: https://github.com/MahShaaban/curatedAdipoChIP
+BugReports: https://github.com/MahShaaban/curatedAdipoChIP/issues
+Encoding: UTF-8
+RoxygenNote: 6.1.1
+Depends: R (>= 3.5),
+    SummarizedExperiment,
+    ExperimentHubData
+Suggests: 
+    knitr,
+    rmarkdown,
+    GenomicFeatures,
+    ChIPseeker,
+    AnnotationDbi,
+    S4Vectors,
+    DESeq2,
+    fastqcr,
+    bib2df,
+    devtools,
+    testthat,
+    readr,
+    dplyr,
+    tidyr,
+    ggplot2
+VignetteBuilder: knitr
+biocViews: ExperimentData,
+    ExperimentHub,
+    GEO,
+    ChIPSeqData,
+    SequencingData
