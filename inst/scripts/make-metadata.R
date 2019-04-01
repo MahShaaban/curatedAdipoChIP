@@ -12,7 +12,7 @@ meta <- data.frame(
   DataProvider = "SRA",
   Maintainer = "Mahmoud Ahmed <mahmoud.s.fahmy@students.kasralainy.edu.eg>",
   RDataClass = "RangedSummarizedExperiment",
-  DispatchClass = "RDA",
+  DispatchClass = "Rda",
   RDataPath = "curatedAdipoChIP/peak_counts.rda",
   Tags = "",
   Notes = ""
