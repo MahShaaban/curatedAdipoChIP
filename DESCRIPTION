@@ -2,7 +2,7 @@ Package: curatedAdipoChIP
 Type: Package
 Title: A Curated ChIP-Seq Dataset of MDI-induced Differentiated Adipocytes 
   (3T3-L1)
-Version: 0.99.1
+Version: 0.99.2
 Year: 2019
 Description: A curated dataset of publicly available ChIP-sequencing of 
   transcription factors, chromatin remodelers and histone modifications in the 
