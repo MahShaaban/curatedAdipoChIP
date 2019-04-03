@@ -19,6 +19,8 @@ build_script:
   - travis-tool.sh install_deps
   - travis-tool.sh install_bioc_deps
   - travis-tool.sh install_bioc SummarizedExperiment
+  - travis-tool.sh install_bioc ExperimentHubData
+  - travis-tool.sh install_bioc ExperimentHub
   - travis-tool.sh install_bioc ChIPseeker
   - travis-tool.sh install_bioc GenomicFeatures
   - travis-tool.sh install_bioc AnnotationDbi

@@ -12,7 +12,7 @@
 #' @name curatedAdipoChIP
 #'
 #' @details The dataset can be accessed through the
-#' \code{\link{ExperimentHubData}} as a \code{RangedSummarizedExperiment}
+#' \code{ExperimentHubData} as a \code{RangedSummarizedExperiment}
 #' object contains:
 #' \describe{
 #' \item{assay}{The read counts \code{matrix}.}
@@ -27,11 +27,15 @@
 #' \dontrun{
 #' # load the data object
 #' library(ExperimentHub)
-#' hub <- ExperimentHub()
-#' x <- query(hub, c("curatedAdipoChIP", "peak_counts"))
-#' x
 #'
-#' ## download resource
-#' peak_counts = x[[1]]
+#' # query package resources on ExperimentHub
+#' eh <- ExperimentHub()
+#' query(eh, "curatedAdipoChIP")
+#'
+#' # load data from ExperimentHub
+#' peak_counts <- query(eh, "curatedAdipoChIP")[[1]]
+#'
+#' # print object
+#' peak_counts
 #' }
 NULL

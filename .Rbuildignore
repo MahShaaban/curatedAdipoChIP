@@ -1,3 +1,4 @@
+^peak_counts\.rda$
 ^\.travis\.yml$
 ^appveyor\.yml$
 ^.*\.Rproj$

@@ -1,0 +1,548 @@
+---
+title: "Using curatedAdipoChIP"
+author: "Mahmoud Ahmed"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Using curatedAdipoChIP}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+# curatedAdipoChIP
+
+A Curated ChIP-Seq Dataset of MDI-induced Differentiated Adipocytes (3T3-L1)
+
+# Overview
+
+In this document, we introduce the purpose of `curatedAdipoChIP` package,
+its contents and its potential use cases. This package is a curated dataset of
+ChIP-Seq samples. The samples are MDI-induced pre-adipocytes (3T3-L1) at
+different time points/stage of differentiation. The ChIP-antibodies used in 
+this dataset are of transcription factors, chromatin remodelers and histone 
+modifications. The package document the data collection, pre-processing and 
+processing. In addition to the documentation the package contains the scripts
+that were used to generate the data in `inst/scripts` and access to the final
+`RangedSummarizedExperiment` object through `ExperimentHub`.
+
+# Introduction
+
+## What is `curatedAdipoChIP`?
+
+It is an R package for documenting and distributing a curated dataset. The 
+package doesn't contain any R functions.
+
+## What is contained in `curatedAdipoChIP`?
+
+The package contains two different things:
+
+1. Scripts for documenting/reproducing the data in `inst/scripts`
+2. Access to the final `RangedSummarizedExperiment` through `ExperimentHub`.
+
+## What is `curatedAdipoChIP` for?
+
+The `RangedSummarizedExperiment` object contains the `peak_counts`, `colData`,
+`rowRanges` and `metadata` which can be used for the purposes of conducting 
+differential peak binding or gene set enrichment analysis on the cell line 
+model.
+
+# Installation
+
+The `curatedAdipoChIP` package can be installed from Bioconductor using 
+`BiocManager`.
+
+```{r install_biocmanager,eval=FALSE}
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+BiocManager::install("curatedAdipoChIP")
+```
+
+# Docker image
+
+The pre-processing and processing of the data setup environment is available as
+a `docker` image. This image is also suitable for reproducing this document. 
+The `docker` image can be obtained using the `docker` CLI client.
+
+```
+$ docker pull bcmslab/adiporeg_chip:latest
+```
+
+# Generating `curatedAdipoChIP`
+
+## Search starategy & data collection
+
+The term "3T3-L1" was used to search the NCBI **SRA** repository. The results
+were sent to the **run selector**. 1,176 runs were viewed. The runs were 
+faceted by **Assay Type** and the "chip-seq" which resulted in 739 runs. Only 
+235 samples from 20 different studies were included after being manually 
+reviewed to fit the following criteria:
+* The raw data is available from GEO and has a GEO identifier (GSM#)
+* The raw data is linked to a published publicly available article
+* The protocols for generating the data sufficiently describe the origin of the
+cell line, the differentiation medium and the time points when the samples were collected. 
+* In case the experimental designs included treatment other than the 
+differentiation medias, the control (non-treated) samples were included.
+
+Note: The data quality and the platform discrepancies are not included in these 
+criteria
+
+## Pre-processing
+
+The scripts to download and process the raw data are located in `inst/scripts/`
+and are glued together to run sequentially by the GNU make file `Makefile`. The
+following is basically a description of the recipes in the `Makefile` with 
+emphasis on the software versions, options, inputs and outputs.
+
+### 1. Downloading data `download_fastq`
+* Program: `wget` (1.18)
+* Input: `run.csv`, the URLs column
+* Output: `*.fastq.gz`
+* Options: `-N`
+
+### 2. Making a genome index `make_index`
+* Program: `bowtie2-build` (2.3.0)
+* Input: URL for mm10 mouse genome fasta files
+* Output: `*.bt2` bowtie2 index for the mouse genome
+* Options: defaults
+
+### 3. Dowinloading annotations `get_annotation`
+* Program: `wget` (1.18)
+* Input: URL for mm10 gene annotation file
+* Output: `annotation.gtf`
+* Options: `-N`
+
+### 4. Aligning reads `align_reads`
+* Program: `bowtie2` (2.3.0)
+* Input: `*.fastq.gz` and `mm10/` bowtie2 index for the mouse genome
+* Output: `*.sam`
+* Options: `--no-unal`
+
+### 5. Calling peaks `peak_calling`
+* Program: `macs2` (2.1.2)
+* Input: `*.bam` and 
+* Output: `peaks.bed`
+* Options: `-B --nomodel --SPMR`
+
+### 6. Making a peakset `get_peakset`
+* Program: `bedtools` (2.26.0)
+* Input: `*.bed`
+* Output: `peakset.bed`
+* Options: `-c 4,4 -o count_distinct,distinct`
+
+### 7. Counting reads in peaks `count_features`
+* Program: `bedtools multicov` (2.26.0)
+* Input: `*.bam` and `peakset.bed`
+* Output: `peakset.txt`
+* Options: defaults 
+
+### 8. Quality assessment `fastqc`
+* Program: `fastqc` (0.11.5)
+* Input: `*.fastq.gz` and `*.sam`
+* Output: `*_fastqc.zip`
+* Option: defaults
+
+## Processing
+
+The aim of this step is to construct a self-contained object with minimal 
+manipulations of the pre-processed data followed by a simple exploration
+of the data in the next section. 
+
+### Making a summarized experiment object `peak_object`
+
+The required steps to make this object from the pre-processed data are 
+documented in the script and are supposed to be fully reproducible when run 
+through this package. The output is a `RangedSummarizedExperiment` object 
+containing the peak counts and the phenotype and features data and metadata.
+
+The `RangedSummarizedExperiment` contains 
+* The gene counts matrix `peak_counts`
+* The phenotype data `colData`. The column `name` links each peak to one or 
+more samples 
+* The feature data `rowRanges`
+* The metadata `metadata` which contain a `data.frame` of the studies from which the
+samples were collected.
+
+## Exploring the `peak_counts` object
+
+In this section, we conduct a simple exploration of the data objects to show 
+the content of the package and how they can be loaded and used.
+
+```{r loading_libraries, message=FALSE}
+# loading required libraries
+library(ExperimentHub)
+library(SummarizedExperiment)
+library(S4Vectors)
+library(fastqcr)
+library(DESeq2)
+library(bib2df)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+```
+
+```{r loading_data}
+# query package resources on ExperimentHub
+eh <- ExperimentHub()
+query(eh, "curatedAdipoChIP")
+
+# load data from ExperimentHub
+peak_counts <- query(eh, "curatedAdipoChIP")[[1]]
+
+# print object
+peak_counts
+```
+
+The count matrix can be accessed using `assay`. Here we show the first five 
+entries of the first five samples.
+
+```{r peak_counts}
+# print count matrix
+assay(peak_counts)[1:5, 1:5]
+```
+
+The phenotype/samples data is a `data.frame`, It can be accessed using 
+`colData`. The `time` and `stage` columns encode the time point in hours and
+stage of differentiation respectively. The column `factor` records the ChIP antibody used in the sample. 
+
+```{r colData}
+# names of the coldata object
+names(colData(peak_counts))
+
+# table of times column
+table(colData(peak_counts)$time)
+
+# table of stage column
+table(colData(peak_counts)$stage)
+
+# table of factor column
+table(colData(peak_counts)$factor)
+```
+
+Other columns in `colData` are selected information about the samples/runs or
+identifiers to different databases. The following table provides the 
+description of each of these columns.
+
+| col_name         | description                                                                                                                                                             |
+|------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| id               | The GEO sample identifier.                                                                                                                                              |
+| runs             | A list of tibbles with information about individual run files.                                                                                                                                                 |
+| study            | The SRA study identifier.                                                                                                                                               |
+| pmid             | The PubMed ID of the article where the data were published originally.                                                                                                  |
+| factor           | The name of the ChIP antibody that was used in the sample.                                                                                                              |
+| time             | The time point of the sample when collected in hours. The time is recorded from the beginning of the protocol as 0 hours.                                               |
+| stage            | The stage of differentiation of the sample when collected. Possible values are 0 to 3; 0 for non-differentiated; 1 for differentiating; and 2/3 for maturating samples. |
+| bibtexkey        | The key of the study where the data were published originally. This maps to the studies object of the metadata which records the study information in bibtex format.    |
+| control_id       | The GEO sample identifier of the control (input) sample. |
+| control_type     | The method for assigning the control samples. Possible values are "provided" when the same study has control sample/s or "other" when control samples were selected from other studies. |
+| library_layout   | The type of RNA library. Possible values are SINGLE for single-end and PAIRED for paired-end runs.                                                                      |
+| instrument_model | The name of the sequencing machine that was used to obtain the sequence reads.                                                                                          |
+| qc | The quality control output of fastqc on the separate files/runs.                                                                                                                      |
+
+The features data are a `GRanges` object and can be accessed using `rowRanges`.
+
+```{r rowRanges}
+# print GRanges object
+rowRanges(peak_counts)
+```
+
+Notice there are two types of data in this object. The first is the coordinates
+of the identified peaks `ranges(peak_counts)`. The second is the annotation of 
+the these regions `mcols(peak_counts)`. The following table show the 
+description of the second annotation item. Except for the first three columns,
+all annotations were obtained using `ChIPSeeker::annotatePeak` as described in
+the `inst/scripts`.
+
+| col_name      | description                                                                                                                                                                               |
+|---------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| peak          | The GEO sample identifier of the samples containing this peak in a CharacterList.                                                                                                                            |
+| name          | The name of the peak in the set of unique merged peaks.                                                                                                                                   |
+| annotation    | genomic feature of the peak, for instance if the peak is located in 5'UTR, it will annotated by 5'UTR. Possible annotation is Promoter-TSS, Exon, 5' UTR, 3' UTR, Intron, and Intergenic. |
+| geneChr       | Chromosome of the nearest gene                                                                                                                                                            |
+| geneStart     | Gene start                                                                                                                                                                                |
+| geneEnd       | Gene end                                                                                                                                                                                  |
+| geneLength    | Gene length                                                                                                                                                                               |
+| geneStrand    | Gene Strand                                                                                                                                                                               |
+| geneId        | Gene symbol                                                                                                                                                                               |
+| distanceToTSS | Distance from peak to gene TSS                                                                                                                                                            |
+
+The metadata is a list of one object. `studies` is a `data.frame` containing
+the bibliography information of the studies from which the data were collected.
+Here we show the first entry in `bib` format.
+
+```{r metadata, message=FALSE}
+# print data of first study
+df2bib(metadata(peak_counts)$studies[1,])
+```
+
+# Summary of the studies in the dataset
+
+```{r summary_table,echo=FALSE}
+# generate a study summary table
+colData(peak_counts)[, c(-2, -12)] %>%
+  as_tibble() %>%
+  filter(!is.na(control_id)) %>%
+  group_by(study) %>%
+  summarise(pmid = unique(pmid),
+            nsamples = n(),
+            time = paste(unique(time), collapse = '/ '),
+            stages = paste(unique(stage), collapse = '/'),
+            factor = paste(unique(factor), collapse = '/ ')) %>%
+  knitr::kable(align = 'cccccc',
+               col.names = c('GEO series ID', 'PubMed ID', 'Num. of Samples',
+                             'Time (hr)', 'Differentiation Stage', 'Factor'))
+```
+
+Some of the samples included in this object are control samples. 
+
+```{r control_samples}
+# show the number of control samples
+table(is.na(peak_counts$control_id))
+```
+
+Also, some entries are recorded as `NA` such as in the column `time` when the the 
+data are missing or couldn't be determined from the metadata.
+
+# Example of using `curatedAdipoChIP`
+
+## Motivation
+
+All the samples in this dataset come from the 
+[3T3-L1](https://en.wikipedia.org/wiki/3T3-L1) cell line. The
+[MDI](http://www.protocol-online.org/prot/Protocols/In-Vitro-Adipocytes-Differentiation-4789.html) 
+induction media, were used to induce adipocyte differentiation. The two 
+important variables in the dataset are `time` and `stage`, which correspond to 
+the time point and stage of differentiation when the sample were captured. 
+Ideally, this dataset should be treated as a time course. However, for the 
+purposes of this example, we only used samples from two differentiation stages
+0 and 1 for the transcription factor 
+[(CEBPB)](https://en.wikipedia.org/wiki/CEBPB) and treated them as independent
+groups. The goal of this example is to show how a typical differential binding
+analysis can be applied in the dataset. The main focus is to explain how the 
+the data and metadata in `peak_counts` fit in each main piece of the analysis.
+We started by sub-setting the object to the samples of interest, filtering the 
+low quality samples and low count genes. Then we applied the `DESeq2` method 
+with the default values. 
+
+## Subsetting the object to samples and peaks of interest
+
+First, we subset the `peak_counts` object to all samples in the differentiation
+stage 0 or 1 for the transcription factor CEBPB. Using the samples IDs we get 
+chose only the features/peaks that was found in at least one of samples. Notice
+that other criteria for choosing peaks can be applied depending on the purpose
+of the analysis. The total number of samples is 8 with 4 samples in each stage.
+The total number of peaks is 49028.
+
+```{r subset object}
+# subset peaks_count object
+# select samples for the factor CEBPB and stage 0 and 1
+sample_ind <- (peak_counts$factor == 'CEBPB') & (peak_counts$stage %in% c(0, 1))
+sample_ids <- colnames(peak_counts)[sample_ind]
+
+# select peaks from the selected samples
+peak_ind <- lapply(mcols(peak_counts)$peak, function(x) sum(sample_ids %in% x))
+peak_ind <- unlist(peak_ind) > 2
+
+# subset the object
+se <- peak_counts[peak_ind, sample_ind]
+
+# show the number of samples in each group
+table(se$stage)
+
+# show the number of peak in each sample
+table(unlist(mcols(se)$peak))[sample_ids]
+```
+
+## Filtering low quality samples
+
+Since the quality metrics are reported per run file, we need to get the SSR* id
+for each of the samples. Notice that, some samples would have more than one 
+file. In this case because some of the samples are paired-end, so each of them 
+would have two files `SRR\*_1` and `SRR\*_2`. This kind of information is 
+available in `colData`.
+
+```{r filtering_samples}
+# check the number of files in qc
+qc <- se$qc
+table(lengths(qc))
+
+# flattening qc list
+qc <- unlist(qc, recursive = FALSE)
+length(qc)
+```
+
+The `qc` object of the metadata contains the output of
+[fastqc](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/) 
+in a `qc_read` class. More information on this object can be accessed by 
+calling `?fastqcr::qc_read`. Here, we only use the `per_base_sequence_quality`
+to filter out low quality samples. This is by no means enough quality control 
+but it should drive the point home.
+
+```{r per_base_scores}
+# extracting per_base_sequence_quality
+per_base <- lapply(qc, function(x) {
+  df <- x[['per_base_sequence_quality']]
+  df %>%
+    dplyr::select(Base, Mean) %>%
+    transform(Base = strsplit(as.character(Base), '-')) %>%
+    unnest(Base) %>%
+    mutate(Base = as.numeric(Base))
+}) %>%
+  bind_rows(.id = 'run')
+```
+
+After tidying the data, we get a `data.frame` with three columns; `run`, `Mean`
+and `Base` for the run ID, the mean quality score and the base number in each 
+read. [fastqc](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/) 
+provide thorough documentation of this quality control module and others. 
+
+```{r score_summary}
+# a quick look at quality scores
+summary(per_base)
+```
+
+To identify the low quality samples, we categorize the runs `run_average` which
+correspond to the average of the per base mean scores. The following figure 
+should make it easier to see why this cutoff were used in this case.
+
+```{r finding_low_scores,fig.align='centre',fig.height=4,fig.width=4}
+# find low quality runs
+per_base <- per_base %>%
+  group_by(run) %>%
+  mutate(run_average = mean(Mean) > 34)
+
+# plot average per base quality
+per_base %>%
+  ggplot(aes(x = Base, y = Mean, group = run, color = run_average)) +
+  geom_line() +
+  lims(y = c(0,40))
+```
+
+The run IDs of the "bad" samples is then used to remove them from the dataset.
+
+```{r remove_lowscore}
+# get run ids of low quality samples
+bad_runs <- unique(per_base$run[per_base$run_average == FALSE])
+bad_samples <- lapply(se$runs, function(x) sum(x$run %in% bad_runs))
+
+# subset the counts object
+se2 <- se[, unlist(bad_samples) == 0]
+
+# show remaining samples by stage
+table(se2$stage) 
+```
+
+## Filtering peaks with low counts
+
+To identify the low count feature/peaks, we keep only the features with at 
+least 10 reads in 2 or more samples. Then we subset the object to exclude 
+the rest.
+
+```{r remove_low_counts}
+# filtering low count genes
+low_counts <- apply(assay(se2), 1, function(x) length(x[x>10])>=2)
+table(low_counts)
+
+# subsetting the count object
+se3 <- se2[low_counts,]
+```
+
+## Check sample reproducibility
+
+One expects that samples from the same group should reflect similar biology. 
+In fact, this is also expected for the differential binding analysis to be 
+reliable. In the context of ChIP-Seq, several measures were proposed to 
+quantify the similarities and discrepancies between the samples, check this
+[article](https://genome.cshlp.org/content/genome/22/9/1813.full.html)
+for more. Here, we use scatter plots of the pairs of samples in each group
+to show that there is a general agreement in terms of the counts in the peakset.
+
+```{r sampel_correlations,fig.align='centre',fig.height=6,fig.width=7}
+# plot scatters of samples from each group
+par(mfrow = c(2,3))
+lapply(split(colnames(se3), se3$stage), function(x) {
+  # get counts of three samples
+  y1 <- assay(se3)[, x[1]]
+  y2 <- assay(se3)[, x[2]]
+  y3 <- assay(se3)[, x[3]]
+  
+  # plot scatters of pairs of samples
+  plot(log10(y1 + 1), log10(y2 + 1), xlab = x[1], ylab = x[2])
+  plot(log10(y1 + 1), log10(y3 + 1), xlab = x[1], ylab = x[3])
+  plot(log10(y2 + 1), log10(y3 + 1), xlab = x[2], ylab = x[3])
+})
+```
+
+## Applying differential binding using `DESeq2`
+
+[DESeq2](https://bioconductor.org/packages/release/bioc/html/DESeq2.html) is a 
+well documented and widely used R package for the differential binding analysis
+of ChIP-Seq data. Here we use the default values of `DESeq` to find the peaks
+which are deferentially bound in stage 1 compared to 0.
+
+```{r differential_binding}
+# differential binding analysis
+colData(se3) <- colData(se3)[, -2]
+se3$stage <- factor(se3$stage)
+dds <- DESeqDataSet(se3, ~stage)
+dds <- DESeq(dds)
+res <- results(dds)
+table(res$padj < .1)
+```
+
+## Next!
+
+In this example, we didn't attempt to correct for the between study factors 
+that might confound the results. To show how is this possible, we use the
+[PCA](https://en.wikipedia.org/wiki/Principal_component_analysis) plots with a 
+few of these factors in the following graphs. The first uses the `stage` factor
+which is the factor of interest in this case. We see that the `DESeq`
+transformation did a good job separating the samples to their expected groups.
+However, it also seems that the `stage` is not the only factor in play. For 
+example, we show in the second and the third graphs two other factors
+`library_layout` and `instrument_model` which might explain some of the 
+variance between the samples. This is expected because the data were collected 
+from different studies using slightly different protocols and different 
+sequencing machines. Therefore, it is necessary to account for these 
+differences to obtain reliable results. There are multiple methods to do that 
+such as [Removing Unwanted Variation (RUV)](http://www-personal.umich.edu/~johanngb/ruv/) 
+and [Surrogate Variable Analysis (SVA)](http://bioconductor.org/packages/release/bioc/html/sva.html).
+
+
+```{r pca,fig.align='centre',fig.height=4,fig.width=4}
+# explaining variabce 
+plotPCA(rlog(dds), intgroup = 'stage')
+plotPCA(rlog(dds), intgroup = 'study')
+```
+
+## Citing the studies in this subset of the data
+
+Speaking of studies, as mentioned earlier the `studies` object contains full
+information of the references of the original studies in which the data were
+published. Please cite them when using this dataset.
+
+```{r studies_keys}
+# keys of the studies in this subset of the data
+unique(se3$bibtexkey)
+```
+
+# Citing `curatedAdipoChIP`
+
+For citing the package use:
+
+```{r citation, warning=FALSE}
+# citing the package
+citation("curatedAdipoChIP")
+```
+
+# Session Info
+
+```{r session_info}
+devtools::session_info()
+```
