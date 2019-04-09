@@ -31,11 +31,15 @@ the studies from which the samples were collected.}
 \dontrun{
 # load the data object
 library(ExperimentHub)
-hub <- ExperimentHub()
-x <- query(hub, c("curatedAdipoChIP", "peak_counts"))
-x
 
-## download resource
-peak_counts = x[[1]]
+# query package resources on ExperimentHub
+eh <- ExperimentHub()
+query(eh, "curatedAdipoChIP")
+
+# load data from ExperimentHub
+peak_counts <- query(eh, "curatedAdipoChIP")[[1]]
+
+# print object
+peak_counts
 }
 }

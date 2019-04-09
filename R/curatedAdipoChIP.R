@@ -23,6 +23,10 @@
 #' the studies from which the samples were collected.}
 #' }
 #'
+#' @import SummarizedExperiment
+#' @import ExperimentHubData
+#' @import ExperimentHub
+#'
 #' @examples
 #' \dontrun{
 #' # load the data object
