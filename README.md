@@ -16,7 +16,7 @@ modifications. The package document the data collection, pre-processing and
 processing. In addition to the documentation the package contains the scripts
 that were used to generated the data in `inst/scripts` and the final
 `RangedSummarizedExperiment` object in can be accessed through the
-`ExperimentHubData`.
+`ExperimentHub`.
 
 # Introduction
 
@@ -31,7 +31,7 @@ The package contains two different things:
 
 1. Scripts for documenting/reproducing the data in `inst/scripts`
 2. Access to a `RangedSummarizedExperiment` object in through the
-`ExperimentHubData`.
+`ExperimentHub`.
 
 ## What is `curatedAdipoChIP` for?
 

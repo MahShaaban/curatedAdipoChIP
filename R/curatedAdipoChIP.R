@@ -12,7 +12,7 @@
 #' @name curatedAdipoChIP
 #'
 #' @details The dataset can be accessed through the
-#' \code{ExperimentHubData} as a \code{RangedSummarizedExperiment}
+#' \code{ExperimentHub} as a \code{RangedSummarizedExperiment}
 #' object contains:
 #' \describe{
 #' \item{assay}{The read counts \code{matrix}.}
@@ -24,7 +24,6 @@
 #' }
 #'
 #' @import SummarizedExperiment
-#' @import ExperimentHubData
 #' @import ExperimentHub
 #'
 #' @examples

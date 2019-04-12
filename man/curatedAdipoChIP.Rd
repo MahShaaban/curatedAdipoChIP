@@ -16,7 +16,7 @@ pre-processing and processing of the data. In addition to the documentation,
 the package contains the scripts that was used to generated the data.
 
 The dataset can be accessed through the
-\code{ExperimentHubData} as a \code{RangedSummarizedExperiment}
+\code{ExperimentHub} as a \code{RangedSummarizedExperiment}
 object contains:
 \describe{
 \item{assay}{The read counts \code{matrix}.}
