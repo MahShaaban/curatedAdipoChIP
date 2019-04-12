@@ -181,7 +181,6 @@ library(SummarizedExperiment)
 library(S4Vectors)
 library(fastqcr)
 library(DESeq2)
-library(bib2df)
 library(dplyr)
 library(tidyr)
 library(ggplot2)
@@ -274,11 +273,11 @@ the `inst/scripts`.
 
 The metadata is a list of one object. `studies` is a `data.frame` containing
 the bibliography information of the studies from which the data were collected.
-Here we show the first entry in `bib` format.
+Here we show the first entry in the `studies` object.
 
 ```{r metadata, message=FALSE}
 # print data of first study
-df2bib(metadata(peak_counts)$studies[1,])
+metadata(peak_counts)$studies[1,]
 ```
 
 # Summary of the studies in the dataset

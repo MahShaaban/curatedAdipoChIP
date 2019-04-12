@@ -3,7 +3,6 @@ library(ChIPseeker)
 library(SummarizedExperiment)
 library(GenomicFeatures)
 library(AnnotationDbi)
-library(bib2df)
 library(tidyverse)
 library(devtools)
 library(S4Vectors)
@@ -16,7 +15,7 @@ samples <- read_csv(system.file('extdata', 'samples.csv', package = 'curatedAdip
 runs_modified <- read_csv(system.file('extdata', 'runs_modified.csv', package = 'curatedAdipoChIP'))
 #runs <- read_csv(system.file('extdata', 'runs.csv', package = 'curatedAdipoChIP'))
 txdb <- loadDb(system.file('extdata', 'txdb.db', package = 'curatedAdipoChIP'))
-studies <- bib2df(system.file('extdata', 'studies.bib', package = 'curatedAdipoChIP'))
+studies <- read_csv(system.file('extdata', 'studies.csv', package = 'curatedAdipoChIP'))
 qc <- read_rds(system.file('extdata', 'qc.rds', package = 'curatedAdipoChIP'))
 
 ## make counts matrix
